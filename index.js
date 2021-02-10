@@ -3,7 +3,7 @@ const fetch = require("node-fetch")
 const app = express()
 const port = 4000
 
-const WeekDays = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday", "Sunday"]
+const WeekDays = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
 let arr
 const Time = 1000 * 60 * 60
 
@@ -30,7 +30,7 @@ function CheckDate(ArrayOfAnime) {
 }
 
 async function FetchData() {
-  let Day = WeekDays[new Date().getDay() - 1]
+  let Day = WeekDays[new Date().getDay()]
   let data = await (await fetch(`https://api.jikan.moe/v3/schedule/${Day}`)).json()
   return data[Day.toLowerCase()]
 }
