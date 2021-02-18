@@ -3,6 +3,7 @@ const fetch = require("node-fetch")
 const app = express()
 const mongoose = require("mongoose")
 const cors = require("cors")
+const random = require("./models/random")
 
 app.use(cors())
 
@@ -10,13 +11,13 @@ const { MongoDBURI } = require("./config")
 const Released = require("./models/Released")
 const { CheckDate } = require("./filtered")
 const WeekDays = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
-const Time = 1000 * 60 * 5
+const Time = 1000 * 60 * 1
 let date
 let arr
-let droppedRequest
 
 mongoose.connect(MongoDBURI, { useNewUrlParser: true, useUnifiedTopology: true })
-.then(console.log("connected to db"));
+.then(console.log("connected to db"))
+.catch(err => console.log(err))
 
 function CheckTitle(arr, title) {
     for (let i = 0; i < arr.length; i++) {
@@ -103,7 +104,6 @@ const fetchData = () => {
     arr.then( data => {
         let arr = data[Day.toLowerCase()]
         let dropped = CheckDate(arr)
-        droppedRequest = dropped
         let num = 0
         if (dropped.length > 0) {
             Released.find({})
@@ -141,16 +141,34 @@ const fetchData = () => {
     })
 }
 
-app.get("/", (req, res) => {
-    res.send(droppedRequest)
-})
-
-app.listen(5000, () => {
-    console.log("Server Started at localhost:5000")
-})
-
 fetchData()
 
 setInterval(() => {
     fetchData()
 }, Time)
+
+setInterval(() => {
+    let r = new random({
+        title: "l",
+        day: 1
+    })
+    r.save()
+}, 10000)
+
+app.get("/", (req, res) => {
+    var today = new Date().toLocaleString("en-US", {
+        timeZone: "Asia/Tokyo"
+      }); 
+    today = new Date(today)
+    let Day = WeekDays[today.getDay()]
+    let arr = CurrentDate()
+    arr.then(data => {
+        let arr = data[Day.toLowerCase()]
+        let dropped = CheckDate(arr)
+        res.send(dropped)
+    })
+})
+
+app.listen(5000, () => {
+    console.log("Server Started at localhost:5000")
+})
