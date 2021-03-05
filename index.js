@@ -3,15 +3,19 @@ const fetch = require("node-fetch")
 const app = express()
 const mongoose = require("mongoose")
 const cors = require("cors")
-const random = require("./models/random")
+const bodyParser = require("body-parser")
 
 app.use(cors())
+app.use(bodyParser.json())
 
-const { MongoDBURI, FCMKEY } = require("./config")
+const host = '0.0.0.0';
+const port = process.env.PORT || 5000;
+const { MongoDBURI } = require("./config")
 const Released = require("./models/Released")
+const Subscription = require("./models/Subscription")
 const { CheckDate } = require("./filtered")
 const WeekDays = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
-const Time = 1000 * 60 * 1
+const Time = 1000 * 60 * 5
 let date
 let arr
 
@@ -34,24 +38,27 @@ function SendNotification(title) {
         "subtitle": "Text"
     }
 
-    let fcmTokens = [
-        "d32VPKs77A-0co1EB4RaLu:APA91bG43MISdYngrvHJSVIZmjgUtD_QK1UFzehCYEk8XatVcKQap5qHSbK13lgIdywIf71UNqfW_J_a5OKZCi25nxbEfbt0P1t3VmWL3FZ5cbTdu8e_LAdlRwJVr-DIA9GsyAFEYcY9"
-    ]
+    let fcmTokens = new Array()
 
-    const notificationBody = {
-        "notification": notification,
-        "registration_ids": fcmTokens
-    }
+    Subscription.find({})
+    .then(doc => {
+        doc.map(d => fcmTokens.push(d.token))
 
-    fetch("https://fcm.googleapis.com/fcm/send", {
-        "method": "POST",
-        "headers": {
-            "Authorization": "key="+FCMKEY,
-            "Content-Type": "application/json"
-        },
-        "body": JSON.stringify(notificationBody)
-    }).then(() => {
-        console.log("Sent Successfully!")
+        const notificationBody = {
+            "notification": notification,
+            "registration_ids": fcmTokens
+        }
+
+        fetch("https://fcm.googleapis.com/fcm/send", {
+            "method": "POST",
+            "headers": {
+                "Authorization": "key="+"AAAAwdots08:APA91bHQ79JViwgaSYi5BFAqGPKb956CRbkBnROLModaMS7mIhGklGT4HtqjzAxp2OJ6nKEoBCiVxWf_QikJtKbcBzlxCx7p7e61LtgkwLA6RQX1-b_EYQPBfvFtveywlbLwYriq7sPF",
+                "Content-Type": "application/json"
+            },
+            "body": JSON.stringify(notificationBody)
+        }).then(() => {
+            console.log("Sent Successfully!")
+        })
     })
 }
 
@@ -147,13 +154,7 @@ setInterval(() => {
     fetchData()
 }, Time)
 
-setInterval(() => {
-    let r = new random({
-        title: "l",
-        day: 1
-    })
-    r.save()
-}, 10000)
+app.options('*', cors())
 
 app.get("/", (req, res) => {
     var today = new Date().toLocaleString("en-US", {
@@ -169,6 +170,36 @@ app.get("/", (req, res) => {
     })
 })
 
-app.listen(5000, () => {
+app.post("/get-token", (req, res) => {
+    Subscription.find({token: req.body["token"]})
+    .then(doc => {
+        if (doc.length === 0) {
+            let t = req.body["token"].split(":")[0]
+            Subscription.find({token: {$regex: t}})
+            .then(doc => {
+                if (doc.length === 0) {
+                    console.log("new")
+                    let sub = new Subscription({
+                        token: req.body["token"]
+                    })
+                    sub.save()
+                    res.send("Successful")
+                } else {
+                    Subscription.deleteMany({token: {$regex: t}}, () => console.log("deleted"))
+                    let sub = new Subscription({
+                        token: req.body["token"]
+                    })
+                    sub.save()
+                    res.send("Successful")
+                }
+            })
+        }
+        else {
+            res.send("Already Exists")
+        }
+    })
+})
+
+app.listen(port, host, () => {
     console.log("Server Started at localhost:5000")
 })
