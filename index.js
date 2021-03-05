@@ -10,7 +10,7 @@ app.use(bodyParser.json())
 
 const host = '0.0.0.0';
 const port = process.env.PORT || 5000;
-const { MongoDBURI } = require("./config")
+const { MongoDBURI, FCMKEY } = require("./config")
 const Released = require("./models/Released")
 const Subscription = require("./models/Subscription")
 const { CheckDate } = require("./filtered")
@@ -52,7 +52,7 @@ function SendNotification(title) {
         fetch("https://fcm.googleapis.com/fcm/send", {
             "method": "POST",
             "headers": {
-                "Authorization": "key="+"AAAAwdots08:APA91bHQ79JViwgaSYi5BFAqGPKb956CRbkBnROLModaMS7mIhGklGT4HtqjzAxp2OJ6nKEoBCiVxWf_QikJtKbcBzlxCx7p7e61LtgkwLA6RQX1-b_EYQPBfvFtveywlbLwYriq7sPF",
+                "Authorization": "key="+FCMKEY,
                 "Content-Type": "application/json"
             },
             "body": JSON.stringify(notificationBody)
